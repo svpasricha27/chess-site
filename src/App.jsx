@@ -23,7 +23,31 @@ function useAuth() {
   }, []);
 
   const fetchMemberData = async (userId) => {
-    const { data } = await supabase.from('members').select('*').eq('user_id', userId).single();
+    // Try matching by user_id first
+    let { data, error } = await supabase.from('members').select('*').eq('user_id', userId).maybeSingle();
+    
+    if (error) console.log('CHeSS: member lookup by user_id error:', error.message);
+    
+    // If no match by user_id, try matching by email
+    if (!data) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        const result = await supabase.from('members').select('*').eq('email', user.email).maybeSingle();
+        if (result.data) {
+          data = result.data;
+          // Auto-link the user_id for next time
+          await supabase.from('members').update({ user_id: userId }).eq('id', data.id);
+          console.log('CHeSS: auto-linked member by email match');
+        }
+      }
+    }
+
+    if (data) {
+      console.log('CHeSS: member loaded —', data.name, '| role:', data.role);
+    } else {
+      console.log('CHeSS: no member record found for auth user', userId);
+    }
+    
     setMemberData(data);
   };
 
@@ -617,6 +641,18 @@ function DashboardPage({ nav, auth }) {
       <div style={{ width: 64, height: 64, borderRadius: "50%", background: `linear-gradient(135deg, ${C.navy}, ${C.navyM})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{ color: "#fff", fontFamily: font, fontWeight: 700, fontSize: 20 }}>{initials}</span></div>
       <div><div style={{ fontFamily: font, fontWeight: 700, fontSize: 20, color: C.navy }}>{m.name || auth?.user?.email}</div><div style={{ fontFamily: font, fontSize: 14, color: C.tL }}>{[m.degrees, m.specialty, m.province, m.status === 'full' ? 'Full Member' : m.status === 'trainee' ? 'Trainee Member' : ''].filter(Boolean).join(" · ")}</div></div>
     </div>
+
+    {/* Account linking diagnostic */}
+    {!m.name && auth?.user && <div style={{ background: "#FEF3C7", border: "1px solid #F59E0B", borderRadius: 10, padding: "20px 24px", marginBottom: 24 }}>
+      <div style={{ fontFamily: font, fontWeight: 700, fontSize: 16, color: "#92400E", marginBottom: 8 }}>Account Not Linked</div>
+      <div style={{ fontFamily: font, fontSize: 14, color: "#92400E", lineHeight: 1.7 }}>
+        Your login works, but it's not linked to a member profile yet. To enable admin access and your full dashboard:
+        <br />1. Go to Supabase → Table Editor → members
+        <br />2. Find your row and set <strong>user_id</strong> to: <code style={{ background: "#FDE68A", padding: "2px 6px", borderRadius: 4, fontSize: 12, wordBreak: "break-all" }}>{auth.user.id}</code>
+        <br />3. Make sure <strong>email</strong> is set to: <code style={{ background: "#FDE68A", padding: "2px 6px", borderRadius: 4, fontSize: 12 }}>{auth.user.email}</code>
+        <br />4. Log out and log back in.
+      </div>
+    </div>}
 
     {/* Stats */}
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 32 }}>
