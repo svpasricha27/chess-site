@@ -220,10 +220,11 @@ const serif = "'Source Serif 4', 'Georgia', serif";
 // ─── App ───────────────────────────────────────────────────────
 export default function CHeSS() {
   const [page, setPage] = useState("home");
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const auth = useAuth();
+  const loggedIn = !!auth.user;
+  const isAdmin = auth.isAdmin;
 
   useEffect(() => { const h = () => setScrolled(window.scrollY > 20); window.addEventListener("scroll", h); return () => window.removeEventListener("scroll", h); }, []);
   const nav = (p) => { setPage(p); setMobileMenu(false); window.scrollTo(0, 0); };
@@ -246,11 +247,12 @@ export default function CHeSS() {
     ...(loggedIn && isAdmin ? [
       { label: "⚙ Admin Panel", page: "admin" },
     ] : []),
-    { label: loggedIn ? "Log Out" : "Join CHeSS", page: loggedIn ? "logout" : "register" },
+    ...(loggedIn ? [{ label: "Log Out", page: "logout" }] : []),
+    ...(!loggedIn ? [{ label: "Join CHeSS", page: "register" }] : []),
   ];
 
   const handleNav = (p) => {
-    if (p === "logout") { setLoggedIn(false); setIsAdmin(false); nav("home"); }
+    if (p === "logout") { auth.signOut(); nav("home"); }
     else nav(p);
   };
 
@@ -295,14 +297,14 @@ export default function CHeSS() {
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {!loggedIn && <button className="nl" onClick={() => { setLoggedIn(true); nav("dashboard"); }} style={{ fontSize: 13, padding: "6px 16px", border: `1px solid rgba(255,255,255,.3)`, borderRadius: 6 }}>Member Login</button>}
+              {!loggedIn && <button className="nl" onClick={() => nav("login")} style={{ fontSize: 13, padding: "6px 16px", border: `1px solid rgba(255,255,255,.3)`, borderRadius: 6 }}>Member Login</button>}
               {loggedIn && (
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ width: 32, height: 32, borderRadius: "50%", background: `linear-gradient(135deg, ${C.crim}, ${C.crimL})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span style={{ color: "#fff", fontFamily: font, fontWeight: 700, fontSize: 12 }}>SL</span>
+                    <span style={{ color: "#fff", fontFamily: font, fontWeight: 700, fontSize: 12 }}>{(auth.memberData?.name || auth.user?.email || "U").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}</span>
                   </div>
-                  <span style={{ fontFamily: font, fontSize: 13, color: "#fff" }}>Dr. Liang</span>
-                  <button onClick={() => setIsAdmin(!isAdmin)} style={{ background: isAdmin ? "#F59E0B" : "rgba(255,255,255,.15)", border: "none", color: "#fff", fontFamily: font, fontSize: 11, padding: "4px 10px", borderRadius: 4, cursor: "pointer", marginLeft: 4 }}>{isAdmin ? "Admin ✓" : "Admin"}</button>
+                  <span style={{ fontFamily: font, fontSize: 13, color: "#fff" }}>{auth.memberData?.name || auth.user?.email}</span>
+                  {isAdmin && <span style={{ background: "#F59E0B", color: "#fff", fontFamily: font, fontSize: 11, padding: "3px 8px", borderRadius: 4 }}>Admin</span>}
                 </div>
               )}
               <button className="mmb" onClick={() => setMobileMenu(!mobileMenu)}>{mobileMenu ? "✕" : "☰"}</button>
@@ -316,7 +318,7 @@ export default function CHeSS() {
       </header>
 
       <main>
-        {page === "home" && <HomePage nav={nav} loggedIn={loggedIn} setLoggedIn={setLoggedIn} />}
+        {page === "home" && <HomePage nav={nav} loggedIn={loggedIn} />}
         {page === "about" && <AboutPage />}
         {page === "leadership" && <LeadershipPage />}
         {page === "members" && <MembersPage />}
@@ -328,7 +330,8 @@ export default function CHeSS() {
         {page === "patients" && <PatientPage />}
         {page === "partners" && <PartnersPage />}
         {page === "register" && <RegisterPage />}
-        {page === "dashboard" && <DashboardPage nav={nav} />}
+        {page === "login" && <LoginPage nav={nav} auth={auth} />}
+        {page === "dashboard" && <DashboardPage nav={nav} auth={auth} />}
         {page === "cme" && <CMEPage />}
         {page === "survey" && <SurveyPage />}
         {page === "evaluation" && <EvaluationPage />}
@@ -358,7 +361,7 @@ function Label({ children }) { return <div style={{ fontFamily: font, fontWeight
 function Bar() { return <div style={{ width: 60, height: 4, background: C.crim, borderRadius: 2, marginBottom: 36 }} />; }
 
 // ─── HOME ──────────────────────────────────────────────────────
-function HomePage({ nav, loggedIn, setLoggedIn }) {
+function HomePage({ nav, loggedIn }) {
   return <>
     <div style={{ background: `linear-gradient(160deg, ${C.navy} 0%, ${C.navyM} 100%)`, padding: "100px 24px 90px", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: -100, right: -100, width: 400, height: 400, borderRadius: "50%", background: C.crim + "12" }} />
@@ -366,10 +369,10 @@ function HomePage({ nav, loggedIn, setLoggedIn }) {
         <div style={{ maxWidth: 700 }}>
           <div style={{ fontFamily: font, fontWeight: 600, fontSize: 14, color: C.crimL, letterSpacing: 2, textTransform: "uppercase", marginBottom: 20 }}>Canadian Hypertension Specialists Society</div>
           <h1 style={{ fontSize: 52, fontWeight: 700, color: "#fff", lineHeight: 1.1, marginBottom: 24 }}>Advancing the care of complex hypertension across Canada</h1>
-          <p style={{ fontFamily: font, fontSize: 18, color: `${C.warmG}cc`, lineHeight: 1.7, marginBottom: 40, maxWidth: 580 }}>A multidisciplinary network of 120+ specialist physicians collaborating through education, research, and clinical excellence.</p>
+          <p style={{ fontFamily: font, fontSize: 18, color: `${C.warmG}cc`, lineHeight: 1.7, marginBottom: 40, maxWidth: 580 }}>A multidisciplinary network of 120+ specialist physicians collaborating through education, research, and clinical excellence. Established in 2022.</p>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <button className="bp" onClick={() => nav("register")}>Join CHeSS →</button>
-            {!loggedIn && <button className="bo" style={{ color: "#fff", borderColor: "rgba(255,255,255,.4)" }} onClick={() => { setLoggedIn(true); nav("dashboard"); }}>Member Login</button>}
+            {!loggedIn && <button className="bo" style={{ color: "#fff", borderColor: "rgba(255,255,255,.4)" }} onClick={() => nav("login")}>Member Login</button>}
           </div>
         </div>
       </div>
@@ -394,34 +397,70 @@ function AboutPage() { return <PW narrow><Label>About Us</Label><h1 className="s
 function LeadershipPage() { const [exp, setExp] = useState(null); const [expA, setExpA] = useState(null); const renderCard = (m, i, expanded, setExpanded, showRole = true) => <div key={m.name} className="cd" style={{ padding: 0, overflow: "hidden", cursor: "pointer" }} onClick={() => setExpanded(expanded === i ? null : i)}><div style={{ display: "flex", gap: 20, padding: "24px 24px 20px" }}><div style={{ width: 64, height: 64, borderRadius: "50%", background: `linear-gradient(135deg, ${C.navy}, ${C.navyM})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{ color: "#fff", fontFamily: font, fontWeight: 700, fontSize: 18 }}>{m.img}</span></div><div><div style={{ fontFamily: font, fontWeight: 700, fontSize: 18, color: C.navy }}>{m.name}</div>{showRole && m.role && <div style={{ fontFamily: font, fontSize: 13, color: C.crim, fontWeight: 600, marginTop: 2 }}>{m.role}</div>}<div style={{ fontFamily: font, fontSize: 13, color: C.tL, marginTop: 4 }}>{m.specialty} · {m.degrees}</div><div style={{ fontFamily: font, fontSize: 13, color: C.tL }}>{m.province}</div></div></div>{expanded === i && <div style={{ padding: "0 24px 24px", fontFamily: font, fontSize: 14, color: C.tM, lineHeight: 1.7, borderTop: `1px solid ${C.brd}`, paddingTop: 16 }}>{m.bio}</div>}</div>; return <PW><Label>Leadership</Label><h1 className="st">Executive Board</h1><p className="ss">The CHeSS executive provides strategic direction and oversees our educational programming, membership, scholarly initiatives, and advocacy. CHeSS was established in 2022.</p><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 24 }}>{EXEC_TEAM.map((m, i) => renderCard(m, i, exp, setExp))}</div><h2 style={{ fontFamily: font, fontWeight: 700, fontSize: 28, color: C.navy, marginTop: 48, marginBottom: 8 }}>Advisors</h2><p className="ss">Senior advisors who provide guidance and mentorship to the CHeSS executive and membership.</p><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 24 }}>{ADVISORS.map((m, i) => renderCard(m, i, expA, setExpA, false))}</div></PW>; }
 
 // ─── MEMBERS ───────────────────────────────────────────────────
-function MembersPage() { const [s, setS] = useState(""); const [sp, setSp] = useState("All"); const [pr, setPr] = useState("All"); const [st, setSt] = useState("All"); const [exp, setExp] = useState(null); const sps = ["All", ...new Set(MEMBERS.map(m => m.specialty))]; const pvs = ["All", ...new Set(MEMBERS.map(m => m.province))]; const f = MEMBERS.filter(m => { if (sp !== "All" && m.specialty !== sp) return false; if (pr !== "All" && m.province !== pr) return false; if (st !== "All" && m.status !== st) return false; if (s && !m.name.toLowerCase().includes(s.toLowerCase()) && !m.interests.toLowerCase().includes(s.toLowerCase())) return false; return true; }); return <PW><Label>Directory</Label><h1 className="st">Membership Directory</h1><p className="ss">Find CHeSS members by specialty, province, or interest. Members listed here have opted in to public visibility.</p><div className="cd" style={{ padding: "20px 24px", marginBottom: 32 }}><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}><div><label>Search</label><input placeholder="Name or interest..." value={s} onChange={e => setS(e.target.value)} /></div><div><label>Specialty</label><select value={sp} onChange={e => setSp(e.target.value)}>{sps.map(x => <option key={x}>{x}</option>)}</select></div><div><label>Province</label><select value={pr} onChange={e => setPr(e.target.value)}>{pvs.map(x => <option key={x}>{x}</option>)}</select></div><div><label>Status</label><select value={st} onChange={e => setSt(e.target.value)}>{["All", "Full Member", "Trainee Member"].map(x => <option key={x}>{x}</option>)}</select></div></div></div><div style={{ fontFamily: font, fontSize: 14, color: C.tL, marginBottom: 16 }}>{f.length} member{f.length !== 1 ? "s" : ""} found</div><div style={{ display: "grid", gap: 16 }}>{f.map((m, i) => <div key={m.name} className="cd" style={{ padding: "20px 24px", cursor: "pointer" }} onClick={() => setExp(exp === i ? null : i)}><div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}><div style={{ display: "flex", gap: 16, alignItems: "center" }}><div style={{ width: 48, height: 48, borderRadius: "50%", background: m.hasPhoto ? `url('https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(m.name)}&backgroundColor=0B1D3A,1A3A6B,B91C3C&backgroundType=gradientLinear') center/cover` : `linear-gradient(135deg, ${C.navyM}, ${C.navy})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, border: m.hasPhoto ? `2px solid ${C.brd}` : "none" }}>{!m.hasPhoto && <span style={{ color: "#fff", fontFamily: font, fontWeight: 700, fontSize: 14 }}>{m.name.split(" ").map(n => n[0]).join("").slice(0, 2)}</span>}</div><div><div style={{ fontFamily: font, fontWeight: 700, fontSize: 16, color: C.navy }}>{m.name}</div><div style={{ fontFamily: font, fontSize: 13, color: C.tL }}>{m.degrees}</div></div></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><span className="tg" style={{ background: C.navy + "12", color: C.navy }}>{m.specialty}</span><span className="tg" style={{ background: C.warmG, color: C.tM }}>{m.province}</span><span className="tg" style={{ background: m.status === "Trainee Member" ? "#FEF3C7" : "#D1FAE5", color: m.status === "Trainee Member" ? "#92400E" : "#065F46" }}>{m.status}</span></div></div>{exp === i && <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.brd}`, fontFamily: font, fontSize: 14, lineHeight: 1.7, color: C.tM }}><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 16 }}><div><strong style={{ color: C.navy }}>Clinical Interests:</strong> {m.interests}</div><div><strong style={{ color: C.navy }}>Research:</strong> {m.research}</div><div><strong style={{ color: C.navy }}>Referrals:</strong> {m.referral}</div></div></div>}</div>)}</div></PW>; }
+function MembersPage() { const [s, setS] = useState(""); const [sp, setSp] = useState("All"); const [pr, setPr] = useState("All"); const [st, setSt] = useState("All"); const [exp, setExp] = useState(null); 
+  const { data: rawMembers } = useSupabaseData('members', MEMBERS, { order: 'name' });
+  const allMembers = rawMembers.filter(m => (m.directory_visible === true || m.directory_visible === undefined) && (m.status === 'full' || m.status === 'trainee' || m.status === 'Full Member' || m.status === 'Trainee Member'));
+  const getStatus = (m) => m.status === 'full' ? 'Full Member' : m.status === 'trainee' ? 'Trainee Member' : m.status;
+  const getInterests = (m) => m.interests || m.bio || '';
+  const getReferral = (m) => m.referral || m.referral_info || '';
+  const sps = ["All", ...new Set(allMembers.map(m => m.specialty).filter(Boolean))]; const pvs = ["All", ...new Set(allMembers.map(m => m.province).filter(Boolean))]; const f = allMembers.filter(m => { if (sp !== "All" && m.specialty !== sp) return false; if (pr !== "All" && m.province !== pr) return false; if (st !== "All" && getStatus(m) !== st) return false; if (s && !m.name.toLowerCase().includes(s.toLowerCase()) && !getInterests(m).toLowerCase().includes(s.toLowerCase())) return false; return true; }); return <PW><Label>Directory</Label><h1 className="st">Membership Directory</h1><p className="ss">Find CHeSS members by specialty, province, or interest. Members listed here have opted in to public visibility.</p><div className="cd" style={{ padding: "20px 24px", marginBottom: 32 }}><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}><div><label>Search</label><input placeholder="Name or interest..." value={s} onChange={e => setS(e.target.value)} /></div><div><label>Specialty</label><select value={sp} onChange={e => setSp(e.target.value)}>{sps.map(x => <option key={x}>{x}</option>)}</select></div><div><label>Province</label><select value={pr} onChange={e => setPr(e.target.value)}>{pvs.map(x => <option key={x}>{x}</option>)}</select></div><div><label>Status</label><select value={st} onChange={e => setSt(e.target.value)}>{["All", "Full Member", "Trainee Member"].map(x => <option key={x}>{x}</option>)}</select></div></div></div><div style={{ fontFamily: font, fontSize: 14, color: C.tL, marginBottom: 16 }}>{f.length} member{f.length !== 1 ? "s" : ""} found</div><div style={{ display: "grid", gap: 16 }}>{f.map((m, i) => <div key={m.name+i} className="cd" style={{ padding: "20px 24px", cursor: "pointer" }} onClick={() => setExp(exp === i ? null : i)}><div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}><div style={{ display: "flex", gap: 16, alignItems: "center" }}><div style={{ width: 48, height: 48, borderRadius: "50%", background: m.photo_url ? `url('${m.photo_url}') center/cover` : `linear-gradient(135deg, ${C.navyM}, ${C.navy})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{!m.photo_url && <span style={{ color: "#fff", fontFamily: font, fontWeight: 700, fontSize: 14 }}>{m.name.split(" ").map(n => n[0]).join("").slice(0, 2)}</span>}</div><div><div style={{ fontFamily: font, fontWeight: 700, fontSize: 16, color: C.navy }}>{m.name}</div><div style={{ fontFamily: font, fontSize: 13, color: C.tL }}>{m.degrees}</div></div></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><span className="tg" style={{ background: C.navy + "12", color: C.navy }}>{m.specialty}</span><span className="tg" style={{ background: C.warmG, color: C.tM }}>{m.province}</span><span className="tg" style={{ background: getStatus(m) === "Trainee Member" ? "#FEF3C7" : "#D1FAE5", color: getStatus(m) === "Trainee Member" ? "#92400E" : "#065F46" }}>{getStatus(m)}</span></div></div>{exp === i && <div style={{ marginTop: 16, paddingTop: 16, borderTop: `1px solid ${C.brd}`, fontFamily: font, fontSize: 14, lineHeight: 1.7, color: C.tM }}><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 16 }}><div><strong style={{ color: C.navy }}>Clinical Interests:</strong> {getInterests(m)}</div>{m.research && <div><strong style={{ color: C.navy }}>Research:</strong> {m.research}</div>}<div><strong style={{ color: C.navy }}>Referrals:</strong> {getReferral(m)}</div></div></div>}</div>)}</div></PW>; }
 
 // ─── SCHEDULE (with admin eval reports) ────────────────────────
 function SchedulePage({ isAdmin }) {
   const [showReport, setShowReport] = useState(null);
-  const upcoming = EVENTS.filter(e => e.upcoming); const past = EVENTS.filter(e => !e.upcoming);
+  const { data: sessions } = useSupabaseData('sessions', EVENTS.map(e => ({ title: e.title, session_type: e.type, session_date: e.date, session_time: '12:00', presenter: e.presenter, cme_hours: 1.25 })), { order: 'session_date', ascending: false });
+  const today = new Date().toISOString().split('T')[0];
+  const upcoming = sessions.filter(s => (s.session_date || s.date) >= today);
+  const past = sessions.filter(s => (s.session_date || s.date) < today);
+  const getDate = (s) => s.session_date || s.date;
+  const getType = (s) => s.session_type || s.type;
+  const getTime = (s) => s.session_time ? new Date('2000-01-01T' + s.session_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) + ' ET' : '12:00 PM ET';
+
   return <PW><Label>Schedule</Label><h1 className="st">Case Conferences & Events</h1><p className="ss">Monthly sessions are held via Zoom. Session links are distributed to active CHeSS members only.</p>
     <h2 style={{ fontFamily: font, fontWeight: 700, fontSize: 22, color: C.navy, marginBottom: 20 }}>Upcoming Sessions</h2>
-    <div style={{ display: "grid", gap: 16, marginBottom: 48 }}>{upcoming.map(e => <div key={e.title} className="cd" style={{ padding: "24px 28px", borderLeft: `4px solid ${typeC[e.type]}` }}><div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}><div><span className="tg" style={{ background: typeBg[e.type], color: typeC[e.type], marginBottom: 10, display: "inline-block" }}>{e.type}</span><h3 style={{ fontFamily: font, fontWeight: 700, fontSize: 18, color: C.navy, marginBottom: 6 }}>{e.title}</h3><div style={{ fontFamily: font, fontSize: 14, color: C.tM }}>Presented by {e.presenter}</div></div><div style={{ textAlign: "right", flexShrink: 0 }}><div style={{ fontFamily: font, fontWeight: 700, fontSize: 16, color: C.navy }}>{new Date(e.date + "T12:00:00").toLocaleDateString("en-CA", { month: "long", day: "numeric", year: "numeric" })}</div><div style={{ fontFamily: font, fontSize: 13, color: C.tL }}>{e.time}</div></div></div></div>)}</div>
+    {upcoming.length === 0 && <div className="cd" style={{ padding: 24, fontFamily: font, color: C.tL }}>No upcoming sessions scheduled yet. Check back soon!</div>}
+    <div style={{ display: "grid", gap: 16, marginBottom: 48 }}>{upcoming.map(e => <div key={e.title} className="cd" style={{ padding: "24px 28px", borderLeft: `4px solid ${typeC[getType(e)] || C.navyM}` }}><div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}><div><span className="tg" style={{ background: typeBg[getType(e)] || C.navy+"12", color: typeC[getType(e)] || C.navyM, marginBottom: 10, display: "inline-block" }}>{getType(e)}</span><h3 style={{ fontFamily: font, fontWeight: 700, fontSize: 18, color: C.navy, marginBottom: 6 }}>{e.title}</h3><div style={{ fontFamily: font, fontSize: 14, color: C.tM }}>Presented by {e.presenter}</div></div><div style={{ textAlign: "right", flexShrink: 0 }}><div style={{ fontFamily: font, fontWeight: 700, fontSize: 16, color: C.navy }}>{new Date(getDate(e) + "T12:00:00").toLocaleDateString("en-CA", { month: "long", day: "numeric", year: "numeric" })}</div><div style={{ fontFamily: font, fontSize: 13, color: C.tL }}>{getTime(e)}</div></div></div></div>)}</div>
     <h2 style={{ fontFamily: font, fontWeight: 700, fontSize: 22, color: C.navy, marginBottom: 20 }}>Past Sessions</h2>
-    <div style={{ display: "grid", gap: 12 }}>{past.map((e, i) => <div key={e.title}><div className="cd" style={{ padding: "18px 24px", cursor: isAdmin ? "pointer" : "default" }} onClick={() => isAdmin && setShowReport(showReport === i ? null : i)}><div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, alignItems: "center" }}><div style={{ display: "flex", gap: 12, alignItems: "center" }}><span className="tg" style={{ background: typeBg[e.type], color: typeC[e.type] }}>{e.type}</span><span style={{ fontFamily: font, fontWeight: 600, fontSize: 15, color: C.navy }}>{e.title}</span></div><div style={{ display: "flex", gap: 12, alignItems: "center" }}>{isAdmin && e.evalReport && <span className="tg" style={{ background: "#D1FAE5", color: "#065F46" }}>📊 {e.evalReport.responses} evals</span>}<span style={{ fontFamily: font, fontSize: 13, color: C.tL }}>{new Date(e.date + "T12:00:00").toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}</span></div></div></div>
-    {isAdmin && showReport === i && e.evalReport && <div style={{ background: "#fff", border: `1px solid ${C.brd}`, borderRadius: "0 0 10px 10px", borderTop: "none", padding: "20px 24px", marginTop: -4 }}>
-      <div style={{ fontFamily: font, fontWeight: 700, fontSize: 16, color: C.navy, marginBottom: 12 }}>Evaluation Report — Admin View</div>
-      <div style={{ fontFamily: font, fontSize: 14, color: C.tM, marginBottom: 16 }}>{e.evalReport.responses} / {e.evalReport.total} responses ({Math.round(e.evalReport.responses / e.evalReport.total * 100)}% response rate)</div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 16 }}>
-        {[["Content", e.evalReport.content], ["Presenter", e.evalReport.presenter], ["Relevance", e.evalReport.relevance], ["Overall", e.evalReport.overall]].map(([l, v]) => <div key={l} style={{ background: C.cream, borderRadius: 8, padding: 16, textAlign: "center" }}><div style={{ fontFamily: font, fontWeight: 700, fontSize: 24, color: C.navy }}>{v}</div><div style={{ fontFamily: font, fontSize: 12, color: C.tL }}>/ 5 — {l}</div></div>)}
-      </div>
-      <div style={{ fontFamily: font, fontSize: 14, color: C.tD }}><strong>Comments:</strong>{e.evalReport.comments.map((c, ci) => <div key={ci} style={{ padding: "6px 0 6px 16px", borderLeft: `3px solid ${C.brd}`, margin: "8px 0", color: C.tM, fontStyle: "italic" }}>"{c}"</div>)}</div>
-    </div>}
-    </div>)}</div>
+    <div style={{ display: "grid", gap: 12 }}>{past.map((e, i) => <div key={e.title + i}><div className="cd" style={{ padding: "18px 24px" }}><div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, alignItems: "center" }}><div style={{ display: "flex", gap: 12, alignItems: "center" }}><span className="tg" style={{ background: typeBg[getType(e)] || C.navy+"12", color: typeC[getType(e)] || C.navyM }}>{getType(e)}</span><span style={{ fontFamily: font, fontWeight: 600, fontSize: 15, color: C.navy }}>{e.title}</span></div><span style={{ fontFamily: font, fontSize: 13, color: C.tL }}>{new Date(getDate(e) + "T12:00:00").toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}</span></div></div></div>)}</div>
   </PW>;
 }
 
 // ─── SUMMARIES ─────────────────────────────────────────────────
-function SummariesPage() { return <PW><Label>Summaries</Label><h1 className="st">Executive Summaries</h1><p className="ss">Briefs summarizing key learning points from past CHeSS conferences.</p><div style={{ display: "grid", gap: 24 }}>{SUMMARIES.map(s => <div key={s.title} className="cd" style={{ padding: "28px 32px" }}><div style={{ fontFamily: font, fontSize: 13, color: C.tL, marginBottom: 8 }}>{s.date}</div><h3 style={{ fontFamily: font, fontWeight: 700, fontSize: 20, color: C.navy, marginBottom: 12 }}>{s.title}</h3><p style={{ fontFamily: font, fontSize: 15, color: C.tM, lineHeight: 1.7, marginBottom: 16 }}>{s.excerpt}</p><div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>{s.tags.map(t => <span key={t} className="tg" style={{ background: C.navy + "10", color: C.navyM }}>{t}</span>)}</div><button className="bo" style={{ padding: "8px 20px", fontSize: 13 }}>Download PDF ↓</button></div>)}</div></PW>; }
+function SummariesPage() { 
+  const { data: summaries } = useSupabaseData('summaries', SUMMARIES.map(s => ({ title: s.title, summary_date: s.date, excerpt: s.excerpt, tags: s.tags, pdf_url: null })), { order: 'created_at', ascending: false });
+  return <PW><Label>Summaries</Label><h1 className="st">Executive Summaries</h1><p className="ss">Briefs summarizing key learning points from past CHeSS conferences.</p><div style={{ display: "grid", gap: 24 }}>{summaries.map((s, i) => <div key={s.title + i} className="cd" style={{ padding: "28px 32px" }}><div style={{ fontFamily: font, fontSize: 13, color: C.tL, marginBottom: 8 }}>{s.summary_date || s.date}</div><h3 style={{ fontFamily: font, fontWeight: 700, fontSize: 20, color: C.navy, marginBottom: 12 }}>{s.title}</h3><p style={{ fontFamily: font, fontSize: 15, color: C.tM, lineHeight: 1.7, marginBottom: 16 }}>{s.excerpt}</p><div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>{(s.tags || []).map(t => <span key={t} className="tg" style={{ background: C.navy + "10", color: C.navyM }}>{t}</span>)}</div>{s.pdf_url && <a href={s.pdf_url} target="_blank" rel="noopener noreferrer" className="bo" style={{ padding: "8px 20px", fontSize: 13, textDecoration: "none" }}>Download PDF ↓</a>}</div>)}</div></PW>; }
 
 // ─── ACADEMIC ──────────────────────────────────────────────────
-function AcademicPage() { return <PW><Label>Research</Label><h1 className="st">Academic Work</h1><p className="ss">Peer-reviewed publications and ongoing research from CHeSS members.</p><div style={{ display: "grid", gap: 16, marginBottom: 48 }}>{PUBLICATIONS.map(p => <div key={p.title} className="cd" style={{ padding: "24px 28px" }}><h3 style={{ fontFamily: font, fontWeight: 700, fontSize: 17, color: C.navy, marginBottom: 8 }}>{p.title}</h3><div style={{ fontFamily: font, fontSize: 14, color: C.tM, marginBottom: 4 }}>{p.authors}</div><div style={{ fontFamily: font, fontSize: 14, color: C.tL }}><em>{p.journal}</em> ({p.year})</div></div>)}</div></PW>; }
+function AcademicPage() { 
+  const { data: pubs } = useSupabaseData('publications', PUBLICATIONS.map(p => ({ title: p.title, authors: p.authors, journal: p.journal, year: p.year, pub_type: 'published' })), { order: 'created_at', ascending: false });
+  const published = pubs.filter(p => (p.pub_type || 'published') !== 'ongoing');
+  const ongoing = pubs.filter(p => p.pub_type === 'ongoing');
+  const typeLabels = { published: 'Published Article', position_statement: 'Position Statement', abstract: 'Conference Abstract' };
+
+  return <PW><Label>Research</Label><h1 className="st">Academic Work</h1><p className="ss">Peer-reviewed publications, position statements, and ongoing research from CHeSS members.</p>
+
+  {published.length > 0 && <><h2 style={{ fontFamily: font, fontWeight: 700, fontSize: 22, color: C.navy, marginBottom: 16 }}>Publications</h2>
+  <div style={{ display: "grid", gap: 16, marginBottom: 48 }}>{published.map((p, i) => <div key={p.title + i} className="cd" style={{ padding: "24px 28px" }}>
+    <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+      <span className="tg" style={{ background: C.navy + "12", color: C.navyM }}>{typeLabels[p.pub_type] || p.pub_type || 'Article'}</span>
+      {p.year && <span className="tg" style={{ background: C.warmG, color: C.tM }}>{p.year}</span>}
+    </div>
+    <h3 style={{ fontFamily: font, fontWeight: 700, fontSize: 17, color: C.navy, marginBottom: 8 }}>{p.title}</h3>
+    {p.authors && <div style={{ fontFamily: font, fontSize: 14, color: C.tM, marginBottom: 4 }}>{p.authors}</div>}
+    <div style={{ fontFamily: font, fontSize: 14, color: C.tL }}>
+      {p.journal && <em>{p.journal}</em>}
+      {p.doi && <span> · DOI: {p.doi}</span>}
+    </div>
+  </div>)}</div></>}
+
+  {ongoing.length > 0 && <><h2 style={{ fontFamily: font, fontWeight: 700, fontSize: 22, color: C.navy, marginBottom: 16 }}>Ongoing Research</h2>
+  <div style={{ display: "grid", gap: 16 }}>{ongoing.map((p, i) => <div key={p.title + i} className="cd" style={{ padding: "24px 28px", borderLeft: `4px solid ${C.crim}` }}>
+    <h3 style={{ fontFamily: font, fontWeight: 700, fontSize: 17, color: C.navy, marginBottom: 8 }}>{p.title}</h3>
+    {p.authors && <div style={{ fontFamily: font, fontSize: 14, color: C.tM, marginBottom: 4 }}>{p.authors}</div>}
+    {p.status && <span className="tg" style={{ background: "#FEF3C7", color: "#92400E" }}>{p.status}</span>}
+    {p.description && <p style={{ fontFamily: font, fontSize: 14, color: C.tM, marginTop: 8, lineHeight: 1.6 }}>{p.description}</p>}
+  </div>)}</div></>}
+  </PW>; }
 
 function EducationPage() { return <PW narrow><Label>Education</Label><h1 className="st">Hypertension Specialist Course</h1><p className="ss">CHeSS partners with a third-party educational provider to deliver a comprehensive hypertension specialist course.</p><div className="cd" style={{ padding: 40, textAlign: "center", background: `linear-gradient(160deg, ${C.navy}, ${C.navyM})`, border: "none", color: "#fff" }}><div style={{ fontSize: 48, marginBottom: 20 }}>🎓</div><h2 style={{ fontFamily: font, fontWeight: 700, fontSize: 26, marginBottom: 12 }}>Hypertension Specialist Certification Course</h2><p style={{ fontFamily: font, fontSize: 16, color: `${C.warmG}cc`, maxWidth: 500, margin: "0 auto 28px", lineHeight: 1.7 }}>A comprehensive, evidence-based curriculum covering all aspects of specialist hypertension care.</p><button className="bp" style={{ background: "#fff", color: C.navy, fontSize: 16, padding: "14px 32px" }}>Visit Course Website →</button></div></PW>; }
 
@@ -431,96 +470,129 @@ function PatientPage() { return <PW><Label>For Patients</Label><h1 className="st
 
 // ─── INDUSTRY PARTNERSHIPS ─────────────────────────────────────
 function PartnersPage() {
-  const tiers = [
-    {
-      level: "Platinum",
-      range: "$50,000+",
-      color: "#6B7280",
-      bg: "linear-gradient(135deg, #E5E7EB, #F3F4F6)",
-      border: "#9CA3AF",
-      partners: [
-        { name: "Servier Canada", desc: "Global pharmaceutical company with a longstanding commitment to cardiovascular medicine and hypertension research. Servier supports CHeSS educational programming and the development of Canadian hypertension guidelines.", focus: "Antihypertensive therapeutics, cardiovascular outcomes research" },
-        { name: "Medtronic Canada", desc: "Global leader in medical technology supporting innovation in renal denervation and catheter-based hypertension interventions. Medtronic partners with CHeSS on procedural education and device-related research.", focus: "Renal denervation devices, cardiovascular device innovation" },
-      ],
-    },
-    {
-      level: "Gold",
-      range: "$20,000 – $49,999",
-      color: "#B8860B",
-      bg: "linear-gradient(135deg, #FEF3C7, #FFFBEB)",
-      border: "#D4A843",
-      partners: [
-        { name: "Bayer Canada", desc: "Bayer supports CHeSS through educational grants focused on mineralocorticoid receptor antagonists and primary aldosteronism screening initiatives.", focus: "MRA therapeutics, aldosterone-mediated hypertension" },
-        { name: "AstraZeneca Canada", desc: "AstraZeneca collaborates with CHeSS on educational initiatives related to cardiorenal protection and the role of SGLT2 inhibitors in hypertensive patients with comorbidities.", focus: "SGLT2 inhibitors, cardiorenal medicine" },
-      ],
-    },
-    {
-      level: "Silver",
-      range: "$10,000 – $19,999",
-      color: "#71717A",
-      bg: "linear-gradient(135deg, #F4F4F5, #FAFAFA)",
-      border: "#A1A1AA",
-      partners: [
-        { name: "OMRON Healthcare Canada", desc: "OMRON supports CHeSS initiatives in ambulatory and home blood pressure monitoring education, providing validated devices for research and clinical programs.", focus: "BP monitoring devices, home BP validation studies" },
-        { name: "Novartis Canada", desc: "Novartis partners with CHeSS on educational programming related to emerging combination therapies and fixed-dose antihypertensive regimens.", focus: "Combination antihypertensive therapy, adherence research" },
-      ],
-    },
-  ];
+  const { data: allPartners } = useSupabaseData('partners', [
+    { name: "Servier Canada", description: "Global pharmaceutical company with a longstanding commitment to cardiovascular medicine and hypertension research.", focus_areas: "Antihypertensive therapeutics, cardiovascular outcomes research", tier: "platinum", academic_year: "2026-27" },
+    { name: "Medtronic Canada", description: "Global leader in medical technology supporting innovation in renal denervation and catheter-based hypertension interventions.", focus_areas: "Renal denervation devices, cardiovascular device innovation", tier: "platinum", academic_year: "2026-27" },
+    { name: "Bayer Canada", description: "Supports CHeSS through educational grants focused on mineralocorticoid receptor antagonists and primary aldosteronism screening.", focus_areas: "MRA therapeutics, aldosterone-mediated hypertension", tier: "gold", academic_year: "2026-27" },
+    { name: "AstraZeneca Canada", description: "Collaborates on educational initiatives related to cardiorenal protection and SGLT2 inhibitors in hypertensive patients.", focus_areas: "SGLT2 inhibitors, cardiorenal medicine", tier: "gold", academic_year: "2026-27" },
+    { name: "OMRON Healthcare Canada", description: "Supports initiatives in ambulatory and home blood pressure monitoring education.", focus_areas: "BP monitoring devices, home BP validation studies", tier: "silver", academic_year: "2026-27" },
+    { name: "Novartis Canada", description: "Partners on educational programming related to emerging combination therapies and fixed-dose antihypertensive regimens.", focus_areas: "Combination antihypertensive therapy, adherence research", tier: "silver", academic_year: "2026-27" },
+  ], { order: 'created_at' });
+
+  const tierConfig = {
+    platinum: { level: "Platinum", range: "$50,000+", color: "#6B7280", bg: "linear-gradient(135deg, #E5E7EB, #F3F4F6)", border: "#9CA3AF" },
+    gold: { level: "Gold", range: "$20,000 – $49,999", color: "#B8860B", bg: "linear-gradient(135deg, #FEF3C7, #FFFBEB)", border: "#D4A843" },
+    silver: { level: "Silver", range: "$10,000 – $19,999", color: "#71717A", bg: "linear-gradient(135deg, #F4F4F5, #FAFAFA)", border: "#A1A1AA" },
+  };
+
+  const years = [...new Set(allPartners.map(p => p.academic_year))].sort().reverse();
+  const currentYear = years[0] || "2026-27";
 
   return <PW>
     <Label>Partners</Label>
     <h1 className="st">Industry Partnerships</h1>
     <p className="ss">CHeSS is grateful to our industry partners whose support enables our educational programming, research initiatives, and national advocacy efforts. All partnerships are conducted in accordance with Canadian medical education guidelines.</p>
 
-    {/* Current year banner */}
     <div className="cd" style={{ padding: "20px 28px", marginBottom: 36, borderLeft: `4px solid ${C.crim}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
       <div>
-        <div style={{ fontFamily: font, fontWeight: 700, fontSize: 18, color: C.navy }}>2026–27 Academic Year Partners</div>
-        <div style={{ fontFamily: font, fontSize: 14, color: C.tM, marginTop: 4 }}>July 2026 – June 2027 · Partnership opportunities for 2027–28 open in Spring 2027</div>
+        <div style={{ fontFamily: font, fontWeight: 700, fontSize: 18, color: C.navy }}>{currentYear} Academic Year Partners</div>
+        <div style={{ fontFamily: font, fontSize: 14, color: C.tM, marginTop: 4 }}>Partnership opportunities for the next academic year open in Spring</div>
       </div>
       <span className="tg" style={{ background: "#D1FAE5", color: "#065F46", fontSize: 13, padding: "6px 16px" }}>Current Year</span>
     </div>
 
-    {tiers.map(tier => (
-      <div key={tier.level} style={{ marginBottom: 40 }}>
-        {/* Tier header */}
+    {["platinum", "gold", "silver"].map(tierKey => {
+      const config = tierConfig[tierKey];
+      const partners = allPartners.filter(p => p.tier === tierKey && p.academic_year === currentYear);
+      if (partners.length === 0) return null;
+      return <div key={tierKey} style={{ marginBottom: 40 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
-          <div style={{ background: tier.bg, border: `2px solid ${tier.border}`, borderRadius: 8, padding: "8px 20px", display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 12, height: 12, borderRadius: "50%", background: tier.border }} />
-            <span style={{ fontFamily: font, fontWeight: 700, fontSize: 16, color: tier.color }}>{tier.level}</span>
+          <div style={{ background: config.bg, border: `2px solid ${config.border}`, borderRadius: 8, padding: "8px 20px", display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 12, height: 12, borderRadius: "50%", background: config.border }} />
+            <span style={{ fontFamily: font, fontWeight: 700, fontSize: 16, color: config.color }}>{config.level}</span>
           </div>
-          <span style={{ fontFamily: font, fontSize: 14, color: C.tL }}>{tier.range}</span>
+          <span style={{ fontFamily: font, fontSize: 14, color: C.tL }}>{config.range}</span>
           <div style={{ flex: 1, height: 1, background: C.brd }} />
         </div>
-
-        {/* Partner cards */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 20 }}>
-          {tier.partners.map(p => (
+          {partners.map(p => (
             <div key={p.name} className="cd" style={{ padding: 0, overflow: "hidden" }}>
-              <div style={{ background: tier.bg, padding: "20px 24px", borderBottom: `1px solid ${tier.border}44` }}>
+              <div style={{ background: config.bg, padding: "20px 24px", borderBottom: `1px solid ${config.border}44` }}>
                 <div style={{ width: 56, height: 56, borderRadius: 10, background: C.navy, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
                   <span style={{ color: "#fff", fontFamily: font, fontWeight: 700, fontSize: 16 }}>{p.name.split(" ").map(w => w[0]).join("").slice(0, 2)}</span>
                 </div>
                 <h3 style={{ fontFamily: font, fontWeight: 700, fontSize: 19, color: C.navy, margin: 0 }}>{p.name}</h3>
               </div>
               <div style={{ padding: "20px 24px" }}>
-                <p style={{ fontFamily: font, fontSize: 14, color: C.tM, lineHeight: 1.7, marginBottom: 12 }}>{p.desc}</p>
-                <div style={{ fontFamily: font, fontSize: 13, color: C.tL }}><strong style={{ color: C.navy }}>Focus areas:</strong> {p.focus}</div>
+                <p style={{ fontFamily: font, fontSize: 14, color: C.tM, lineHeight: 1.7, marginBottom: 12 }}>{p.description}</p>
+                <div style={{ fontFamily: font, fontSize: 13, color: C.tL }}><strong style={{ color: C.navy }}>Focus areas:</strong> {p.focus_areas}</div>
               </div>
             </div>
           ))}
         </div>
-      </div>
-    ))}
+      </div>;
+    })}
 
-    {/* Become a partner CTA */}
     <div className="cd" style={{ padding: 40, textAlign: "center", background: `linear-gradient(160deg, ${C.navy}, ${C.navyM})`, border: "none", color: "#fff", marginTop: 20 }}>
       <h2 style={{ fontFamily: font, fontWeight: 700, fontSize: 24, marginBottom: 12 }}>Become a CHeSS Partner</h2>
       <p style={{ fontFamily: font, fontSize: 16, color: `${C.warmG}cc`, maxWidth: 550, margin: "0 auto 24px", lineHeight: 1.7 }}>
-        Partnership opportunities for the 2027–28 academic year open in Spring 2027. Industry partners gain visibility among 120+ specialist physicians across Canada and support the advancement of hypertension care.
+        Industry partners gain visibility among 120+ specialist physicians across Canada and support the advancement of hypertension care.
       </p>
       <button className="bp" style={{ background: "#fff", color: C.navy, fontSize: 16, padding: "14px 32px" }}>Contact Us About Partnerships</button>
       <p style={{ fontFamily: font, fontSize: 13, color: `${C.warmG}88`, marginTop: 16 }}>All partnerships comply with RCPSC and Hypertension Canada conflict of interest policies.</p>
+    </div>
+  </PW>;
+}
+
+// ─── LOGIN PAGE ────────────────────────────────────────────────
+function LoginPage({ nav, auth }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    setError("");
+    if (!email || !password) { setError("Please enter both email and password."); return; }
+    setLoading(true);
+    const result = await auth.signIn(email, password);
+    setLoading(false);
+    if (result.error) {
+      setError(result.error.message === "Invalid login credentials" ? "Invalid email or password. Please try again." : result.error.message);
+    } else {
+      nav("dashboard");
+    }
+  };
+
+  if (auth.user) {
+    nav("dashboard");
+    return null;
+  }
+
+  return <PW narrow>
+    <Label>Member Access</Label>
+    <h1 className="st" style={{ fontSize: 32 }}>Member Login</h1>
+    <div style={{ width: 60, height: 4, background: C.crim, borderRadius: 2, marginBottom: 32 }} />
+
+    <div className="cd" style={{ padding: 36, maxWidth: 440, margin: "0 auto" }}>
+      {error && <div style={{ background: "#FEE2E2", border: "1px solid #EF4444", borderRadius: 8, padding: "12px 16px", marginBottom: 20, fontFamily: font, fontSize: 14, color: "#991B1B" }}>{error}</div>}
+
+      <div style={{ marginBottom: 20 }}>
+        <label>Email</label>
+        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your.email@institution.ca" onKeyDown={e => e.key === "Enter" && handleLogin()} />
+      </div>
+      <div style={{ marginBottom: 24 }}>
+        <label>Password</label>
+        <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" onKeyDown={e => e.key === "Enter" && handleLogin()} />
+      </div>
+
+      <button className="bp" style={{ width: "100%", justifyContent: "center", fontSize: 16, opacity: loading ? 0.6 : 1 }} onClick={handleLogin} disabled={loading}>
+        {loading ? "Signing in..." : "Sign In"}
+      </button>
+
+      <p style={{ fontFamily: font, fontSize: 13, color: C.tL, marginTop: 20, textAlign: "center", lineHeight: 1.6 }}>
+        Login credentials are provided upon membership approval. To apply for membership, <a href="#" onClick={e => { e.preventDefault(); nav("register"); }} style={{ color: C.crim, fontWeight: 600 }}>join CHeSS here</a>.
+      </p>
     </div>
   </PW>;
 }
@@ -532,16 +604,18 @@ function RegisterPage() { const [sub, setSub] = useState(false); if (sub) return
 // ═══════════════════════════════════════════════════════════════
 
 // ─── MEMBER DASHBOARD ──────────────────────────────────────────
-function DashboardPage({ nav }) {
+function DashboardPage({ nav, auth }) {
   const [calendarUrl, setCalendarUrl] = useState(null);
+  const m = auth?.memberData || {};
+  const initials = (m.name || auth?.user?.email || "U").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
   return <PW>
-    <Label>Member Portal</Label><h1 className="st">Welcome back, Dr. Liang</h1>
+    <Label>Member Portal</Label><h1 className="st">Welcome back{m.name ? `, ${m.name.split(" ").slice(-1)[0]}` : ""}</h1>
     <div style={{ width: 60, height: 4, background: C.crim, borderRadius: 2, marginBottom: 32 }} />
 
     {/* Profile bar */}
     <div className="cd" style={{ padding: "24px 28px", marginBottom: 24, display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
-      <div style={{ width: 64, height: 64, borderRadius: "50%", background: `linear-gradient(135deg, ${C.navy}, ${C.navyM})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{ color: "#fff", fontFamily: font, fontWeight: 700, fontSize: 20 }}>SL</span></div>
-      <div><div style={{ fontFamily: font, fontWeight: 700, fontSize: 20, color: C.navy }}>Dr. Sarah Liang</div><div style={{ fontFamily: font, fontSize: 14, color: C.tL }}>MD, FRCPC · Nephrology · Ontario · Full Member</div></div>
+      <div style={{ width: 64, height: 64, borderRadius: "50%", background: `linear-gradient(135deg, ${C.navy}, ${C.navyM})`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{ color: "#fff", fontFamily: font, fontWeight: 700, fontSize: 20 }}>{initials}</span></div>
+      <div><div style={{ fontFamily: font, fontWeight: 700, fontSize: 20, color: C.navy }}>{m.name || auth?.user?.email}</div><div style={{ fontFamily: font, fontSize: 14, color: C.tL }}>{[m.degrees, m.specialty, m.province, m.status === 'full' ? 'Full Member' : m.status === 'trainee' ? 'Trainee Member' : ''].filter(Boolean).join(" · ")}</div></div>
     </div>
 
     {/* Stats */}
