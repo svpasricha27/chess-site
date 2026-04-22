@@ -28,8 +28,9 @@ export default async function handler(req, res) {
   }
 
   const toICSEndDate = (dateStr, time, hours) => {
-    const d = new Date(`${dateStr}T${time || '12:00'}:00`)
-    d.setMinutes(d.getMinutes() + Math.round((hours || 1.25) * 60))
+    const [h, m] = (time || '12:00').split(':')
+    const d = new Date(`${dateStr}T${pad(h)}:${pad(m)}:00`)
+    d.setMinutes(d.getMinutes() + Math.round((parseFloat(hours) || 1.25) * 60))
     return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
   }
 
@@ -38,7 +39,7 @@ export default async function handler(req, res) {
   const events = sessions.map(s => {
     const start = toICSDate(s.session_date, s.session_time)
     const end = toICSEndDate(s.session_date, s.session_time, s.cme_hours)
-    const uid = `${s.id || s.session_date}@chess-hypertension.vercel.app`
+    const uid = `${s.id || s.session_date}@chess-hypertension.org`
 
     let description = `Presenter: ${s.presenter || 'TBA'}`
     description += `\\nType: ${s.session_type}`
