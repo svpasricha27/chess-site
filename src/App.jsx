@@ -52,7 +52,7 @@ export default function CHeSS(){
       {page==="login"&&<LoginPage nav={nav} auth={auth}/>}
       {page==="resetpw"&&<LoginPage nav={nav} auth={auth} initMode="newpw"/>}
       {page==="dashboard"&&(li?<MemberDashboard nav={nav} auth={auth}/>:<LoginPage nav={nav} auth={auth}/>)}
-      {page==="admin"&&(ia?<AdminPage/>:<LoginPage nav={nav} auth={auth}/>)}
+      {page==="admin"&&(ia?<AdminPage auth={auth}/>:<LoginPage nav={nav} auth={auth}/>)}
     </main>
     <footer style={{background:C.navy,color:C.warmG,padding:"48px 24px 32px",marginTop:80}}><div style={{maxWidth:1200,margin:"0 auto",display:"flex",flexWrap:"wrap",gap:40,justifyContent:"space-between"}}><div style={{maxWidth:350}}><div style={{fontFamily:fn,fontWeight:700,fontSize:22,color:"#fff",marginBottom:12,letterSpacing:1}}>CHeSS</div><p style={{fontFamily:fn,fontSize:14,lineHeight:1.7,color:`${C.warmG}bb`}}>A multidisciplinary network of 120+ physicians. Est. 2022.</p></div><div><div style={{fontFamily:fn,fontWeight:600,fontSize:13,color:"#fff",letterSpacing:1,marginBottom:12,textTransform:"uppercase"}}>Contact</div><p style={{fontFamily:fn,fontSize:14,lineHeight:2,color:`${C.warmG}bb`}}>info@chess-hypertension.ca</p></div></div><div style={{maxWidth:1200,margin:"32px auto 0",paddingTop:24,borderTop:`1px solid ${C.navyL}`,fontFamily:fn,fontSize:13,color:`${C.warmG}88`}}>© 2026 Canadian Hypertension Specialists Society.</div></footer>
   </div>;
@@ -172,7 +172,39 @@ function MemberDirectory(){
   return<div><div className="cd" style={{padding:"16px 20px",marginBottom:24}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}><div><label>Search</label><input placeholder="Name or interest..." value={s} onChange={e=>setS(e.target.value)}/></div><div><label>Specialty</label><select value={sp} onChange={e=>setSp(e.target.value)}>{sps.map(x=><option key={x}>{x}</option>)}</select></div></div></div><div style={{fontFamily:fn,fontSize:14,color:C.tL,marginBottom:12}}>{fl.length} member{fl.length!==1?"s":""}</div>{fl.map((m,i)=><div key={m.id||m.name} className="cd" style={{padding:"16px 20px",marginBottom:8,cursor:"pointer"}} onClick={()=>setExp(exp===i?null:i)}><div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:8}}><div style={{display:"flex",gap:12,alignItems:"center"}}><Ini name={m.name} size={40}/><div><div style={{fontFamily:fn,fontWeight:700,fontSize:15,color:C.navy}}>{m.name}</div><div style={{fontFamily:fn,fontSize:12,color:C.tL}}>{m.degrees}{m.specialty?` · ${m.specialty}`:''}{m.province?` · ${m.province}`:''}</div>{(m.academic_profile_url||m.orcid_url)&&<div style={{display:"flex",gap:8,marginTop:2}}>{m.academic_profile_url&&<a href={m.academic_profile_url} target="_blank" rel="noopener noreferrer" style={{fontFamily:fn,fontSize:11,color:C.navyM}} onClick={e=>e.stopPropagation()}>Profile ↗</a>}{m.orcid_url&&<a href={m.orcid_url} target="_blank" rel="noopener noreferrer" style={{fontFamily:fn,fontSize:11,color:"#A6CE39"}} onClick={e=>e.stopPropagation()}>ORCID ↗</a>}</div>}</div></div></div>{exp===i&&<div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${C.brd}`,fontFamily:fn,fontSize:13,color:C.tM,lineHeight:1.6}}>{m.clinical_interests&&<div><strong style={{color:C.navy}}>Clinical:</strong> {m.clinical_interests}</div>}{m.academic_interests&&<div><strong style={{color:C.navy}}>Academic:</strong> {m.academic_interests}</div>}{m.institution&&<div><strong style={{color:C.navy}}>Institution:</strong> {m.institution}</div>}</div>}</div>)}</div>;
 }
 
-function MemberCalendar(){return<div style={{fontFamily:fn}}><h3 style={{fontWeight:700,fontSize:18,color:C.navy,marginBottom:12}}>Calendar Subscription</h3><p style={{fontSize:14,color:C.tM,lineHeight:1.6,marginBottom:16}}>A subscribable calendar feed is coming soon. Once available, you'll be able to add all CHeSS sessions to your Google Calendar, Apple Calendar, or Outlook with one click.</p><div className="cd" style={{padding:24,textAlign:"center",borderStyle:"dashed"}}><div style={{fontSize:36,marginBottom:12}}>📅</div><div style={{fontFamily:fn,fontWeight:600,color:C.navy}}>Coming Soon</div><div style={{fontFamily:fn,fontSize:13,color:C.tL,marginTop:4}}>ICS calendar feed in development</div></div></div>}
+function MemberCalendar(){
+  const{data:sessions}=useData('sessions',[],{order:'session_date',ascending:true});
+  const upcoming=sessions.filter(s=>s.session_date>=new Date().toISOString().split('T')[0]);
+  const calUrl=window.location.origin+'/api/calendar';
+  const[copied,setCopied]=useState(false);
+  const copyUrl=()=>{navigator.clipboard.writeText(calUrl).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),3000)})};
+
+  return<div style={{fontFamily:fn}}>
+    <h3 style={{fontWeight:700,fontSize:18,color:C.navy,marginBottom:12}}>Calendar Subscription</h3>
+    <p style={{fontSize:14,color:C.tM,lineHeight:1.6,marginBottom:20}}>Subscribe to the CHeSS calendar and new sessions will automatically appear in your calendar as they are added.</p>
+
+    <div className="cd" style={{padding:24,marginBottom:24,borderLeft:`4px solid ${C.mA}`}}>
+      <div style={{fontWeight:700,fontSize:16,color:C.navy,marginBottom:12}}>Auto-Updating Subscription</div>
+      <p style={{fontSize:13,color:C.tM,lineHeight:1.6,marginBottom:16}}>Add this URL to your calendar app. Sessions will sync automatically every few hours.</p>
+      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+        <input value={calUrl} readOnly style={{flex:1,minWidth:200,background:C.cream,fontFamily:"monospace",fontSize:13,padding:"10px 12px"}} onClick={e=>e.target.select()}/>
+        <button style={abm(true)} onClick={copyUrl}>{copied?"Copied!":"Copy URL"}</button>
+      </div>
+      <div style={{fontSize:13,color:C.tL,lineHeight:1.8}}>
+        <strong>Google Calendar:</strong> Settings &gt; Other calendars &gt; From URL &gt; paste the link<br/>
+        <strong>Apple Calendar:</strong> File &gt; New Calendar Subscription &gt; paste the link<br/>
+        <strong>Outlook:</strong> Add calendar &gt; Subscribe from web &gt; paste the link
+      </div>
+    </div>
+
+    <div style={{fontWeight:600,fontSize:15,color:C.navy,marginBottom:12}}>Or download individual sessions:</div>
+    {upcoming.length>0&&<div style={{display:"grid",gap:8}}>{upcoming.map(s=><div key={s.id||s.title} className="cd" style={{padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+      <div><div style={{fontWeight:600,fontSize:14,color:C.navy}}>{s.title}</div><div style={{fontSize:12,color:C.tL}}>{fmtD(s.session_date)} - {s.presenter}</div></div>
+      <a href={calUrl} download={`chess_${s.session_date}.ics`} className="bo" style={{padding:"6px 16px",fontSize:13}}>Add to Calendar</a>
+    </div>)}</div>}
+    {upcoming.length===0&&<div className="cd" style={{padding:20,textAlign:"center",color:C.tL,fontSize:14}}>No upcoming sessions.</div>}
+    <p style={{fontSize:12,color:C.tL,marginTop:16,lineHeight:1.6}}>Admins may also send session reminder emails to all members directly from the admin panel.</p>
+  </div>}
 
 function MemberEditProfile({auth}){
   const m=auth?.memberData||{};const[saved,setSaved]=useState(false);
@@ -180,16 +212,18 @@ function MemberEditProfile({auth}){
 }
 
 // ═══ ADMIN PANEL ═══════════════════════════════════════════════
-function AdminPage(){
+function AdminPage({auth}){
   const[tab,setTab]=useState("sessions");const[msg,setMsg]=useState("");const[editId,setEditId]=useState(null);const[editData,setEditData]=useState(null);
   const sessions=useData('sessions',FB_SESS,{order:'session_date',ascending:false});
   const pubs=useData('publications',FB_PUBS,{order:'created_at',ascending:false});
   const members=useData('members',[],{order:'name'});
   const tools=useData('tools',FB_TOOLS,{order:'display_order'});
   const partners=useData('partners',FB_PARTNERS,{order:'created_at'});
+  const evals=useData('evaluations',[],{order:'created_at',ascending:false});
+  const cmeRecs=useData('cme_records',[],{order:'created_at',ascending:false});
   const leadership=useData('leadership',[],{select:'*,members(*)',order:'display_order'});
   const flash=m=>{setMsg(m);setTimeout(()=>setMsg(""),5000)};
-  const tabs=[{id:"sessions",l:"📋 Sessions"},{id:"academic",l:"📄 Academic"},{id:"members",l:"👥 Members"},{id:"tools",l:"🩺 Tools"},{id:"partners",l:"🤝 Partners"},{id:"leadership",l:"👑 Leadership"},{id:"export",l:"📦 Export"}];
+  const tabs=[{id:"sessions",l:"📋 Sessions"},{id:"academic",l:"📄 Academic"},{id:"members",l:"👥 Members"},{id:"tools",l:"🩺 Tools"},{id:"partners",l:"🤝 Partners"},{id:"leadership",l:"👑 Leadership"},{id:"evals",l:"📊 Evaluations"},{id:"cmelog",l:"🎓 CME Log"},{id:"export",l:"📦 Export"}];
 
   const startEdit=(table,id,data)=>{setEditId(id);setEditData({table,...data});setTab("edit")};
 
@@ -202,7 +236,7 @@ function AdminPage(){
 
     {/* SESSIONS */}
     {tab==="sessions"&&<><h2 style={{fontFamily:fn,fontSize:20,fontWeight:700,color:C.navy,marginBottom:16}}>Add Session</h2><div id="f-s" style={ac}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}><div><label>Title *</label><input name="title"/></div><div><label>Presenter</label><input name="presenter"/></div></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16,marginBottom:16}}><div><label>Date *</label><input name="session_date" type="date"/></div><div><label>Time</label><input name="session_time" type="time" defaultValue="12:00"/></div><div><label>Type</label><select name="session_type"><option value="Didactic">Didactic</option><option value="Case">Case</option><option value="Debate">Debate</option></select></div><div><label>CME Hrs</label><input name="cme_hours" type="number" defaultValue="1.25" step="0.25"/></div></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}><div><label>Zoom Link</label><input name="zoom_link" placeholder="https://zoom.us/j/..."/></div><div><label>Summary PDF</label><input type="file" accept=".pdf" id="pdf-upload" style={{padding:8}}/></div></div><button style={ab(true)} onClick={async()=>{const g=n=>gv('f-s',n);if(!g('title')||!g('session_date'))return alert('Title and date required.');let pdfUrl=null;const fileInput=document.getElementById('pdf-upload');if(fileInput?.files[0]){const r=await db.uploadPdf(fileInput.files[0]);pdfUrl=r.url}await db.insert('sessions',{title:g('title'),session_date:g('session_date'),session_time:g('session_time')||'12:00',session_type:g('session_type'),presenter:g('presenter'),cme_hours:parseFloat(g('cme_hours'))||1.25,zoom_link:g('zoom_link')||null,summary_pdf_url:pdfUrl});flash('Session created!');rf('f-s');sessions.refresh()}}>Create Session</button></div>
-    <div style={ac}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:fn,fontSize:14}}><thead><tr style={{borderBottom:"2px solid #ddd"}}>{["Title","Date","Type","Summary","Actions"].map(h=><th key={h} style={{textAlign:"left",padding:"8px",fontWeight:600}}>{h}</th>)}</tr></thead><tbody>{sessions.data.map(s=><tr key={s.id||s.title} style={{borderBottom:"1px solid #eee"}}><td style={{padding:8}}>{s.title}</td><td style={{padding:8}}>{s.session_date}</td><td style={{padding:8}}>{s.session_type}</td><td style={{padding:8}}>{s.summary_excerpt||s.summary_pdf_url?"✓":"—"}</td><td style={{padding:8}}><button style={edb} onClick={()=>startEdit('sessions',s.id,s)}>Edit</button>{" "}<button style={dlb} onClick={async()=>{if(confirm('Delete?')){await db.remove('sessions',s.id);sessions.refresh();flash('Deleted.')}}}>Delete</button></td></tr>)}</tbody></table></div></>}
+    <div style={ac}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:fn,fontSize:14}}><thead><tr style={{borderBottom:"2px solid #ddd"}}>{["Title","Date","Type","Summary","Actions"].map(h=><th key={h} style={{textAlign:"left",padding:"8px",fontWeight:600}}>{h}</th>)}</tr></thead><tbody>{sessions.data.map(s=><tr key={s.id||s.title} style={{borderBottom:"1px solid #eee"}}><td style={{padding:8}}>{s.title}</td><td style={{padding:8}}>{s.session_date}</td><td style={{padding:8}}>{s.session_type}</td><td style={{padding:8}}>{s.summary_excerpt||s.summary_pdf_url?"✓":"—"}</td><td style={{padding:8}}><button style={edb} onClick={()=>startEdit('sessions',s.id,s)}>Edit</button>{" "}<button style={{background:"none",border:"none",color:"#0D9488",fontFamily:fn,fontSize:13,cursor:"pointer",fontWeight:600}} onClick={async()=>{if(!confirm(`Send reminder email to ALL members about "${s.title}"?`))return;flash('Sending emails...');try{const r=await fetch('/api/remind',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:s.id,admin_email:auth?.memberData?.email||auth?.user?.email,admin_name:auth?.memberData?.name})});const d=await r.json();flash(d.message||`Sent ${d.sent} emails`)}catch(e){flash('Error sending: '+e.message)}}}>Email All</button>{" "}<button style={dlb} onClick={async()=>{if(confirm('Delete?')){await db.remove('sessions',s.id);sessions.refresh();flash('Deleted.')}}}>Delete</button></td></tr>)}</tbody></table></div></>}
 
     {/* ACADEMIC */}
     {tab==="academic"&&<><h2 style={{fontFamily:fn,fontSize:20,fontWeight:700,color:C.navy,marginBottom:16}}>Add Publication</h2><div id="f-p" style={ac}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}><div><label>Title *</label><input name="title"/></div><div><label>Type</label><select name="pub_type"><option value="published">Published</option><option value="position_statement">Position Statement</option><option value="abstract">Abstract</option><option value="ongoing">Ongoing</option></select></div></div><div style={{marginBottom:16}}><label>Authors</label><input name="authors"/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,marginBottom:16}}><div><label>Journal</label><input name="journal"/></div><div><label>Year</label><input name="year"/></div><div><label>DOI</label><input name="doi"/></div></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}><div><label>Full Article URL</label><input name="url"/></div><div><label>Status</label><input name="status"/></div></div><button style={ab(true)} onClick={async()=>{const g=n=>gv('f-p',n);if(!g('title'))return alert('Title required.');await db.insert('publications',{title:g('title'),pub_type:g('pub_type'),authors:g('authors'),journal:g('journal'),year:g('year'),doi:g('doi'),url:g('url'),status:g('status')});flash('Added!');rf('f-p');pubs.refresh()}}>Add</button></div>
@@ -224,6 +258,39 @@ function AdminPage(){
     {/* LEADERSHIP */}
     {tab==="leadership"&&<><h2 style={{fontFamily:fn,fontSize:20,fontWeight:700,color:C.navy,marginBottom:16}}>Add to Leadership</h2><div id="f-lead" style={ac}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,marginBottom:16}}><div><label>Member *</label><select name="member_id"><option value="">Select member...</option>{members.data.filter(m=>m.status==='full'||m.status==='trainee').map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></div><div><label>Type *</label><select name="board_type"><option value="board">Executive Board</option><option value="advisor">Advisor</option></select></div><div><label>Role Title (Board only)</label><input name="role_title" placeholder="e.g. President"/></div></div><button style={ab(true)} onClick={async()=>{const g=n=>gv('f-lead',n);if(!g('member_id'))return alert('Select a member.');await db.insert('leadership',{member_id:g('member_id'),board_type:g('board_type'),role_title:g('role_title')||null});flash('Added to leadership!');rf('f-lead');leadership.refresh()}}>Add</button></div>
     <h3 style={{fontFamily:fn,fontSize:16,fontWeight:600,marginBottom:12}}>Current Leadership</h3><div style={ac}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:fn,fontSize:14}}><thead><tr style={{borderBottom:"2px solid #ddd"}}>{["Name","Type","Role","Actions"].map(h=><th key={h} style={{textAlign:"left",padding:8,fontWeight:600}}>{h}</th>)}</tr></thead><tbody>{leadership.data.map(l=><tr key={l.id} style={{borderBottom:"1px solid #eee"}}><td style={{padding:8}}>{l.members?.name||'—'}</td><td style={{padding:8}}>{l.board_type==='board'?'Executive Board':'Advisor'}</td><td style={{padding:8}}>{l.role_title||'—'}</td><td style={{padding:8}}><button style={edb} onClick={()=>startEdit('leadership',l.id,{board_type:l.board_type,role_title:l.role_title,display_order:l.display_order})}>Edit</button>{" "}<button style={dlb} onClick={async()=>{if(confirm('Remove from leadership?')){await db.remove('leadership',l.id);leadership.refresh();flash('Removed.')}}}>Remove</button></td></tr>)}</tbody></table></div></>}
+
+    {/* EVALUATIONS SUMMARY */}
+    {tab==="evals"&&(()=>{
+      const sessionsWithEvals=sessions.data.filter(s=>{const se=evals.data.filter(e=>e.session_id===s.id);return se.length>0});
+      const downloadSessionEval=(s)=>{
+        const se=evals.data.filter(e=>e.session_id===s.id);if(!se.length)return;
+        const avg=(field)=>{const vals=se.map(e=>e[field]).filter(v=>v!=null&&v>0);return vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):'N/A'};
+        const lines=[`Session Evaluation Summary`,``,`Session: ${s.title}`,`Date: ${s.session_date}`,`Presenter: ${s.presenter||'N/A'}`,`Type: ${s.session_type}`,``,`Responses: ${se.length}`,``,`--- Activity Ratings (1-5) ---`,`Met Learning Objectives: ${avg('rating_objectives')}`,`Enhanced Knowledge: ${avg('rating_knowledge')}`,`Applied to Practice: ${avg('rating_practice')}`,`Free from Bias: ${avg('rating_bias')}`,``,`--- Presenter Ratings (1-5) ---`,`Effectiveness: ${avg('rating_pres_effectiveness')}`,`Content Relevance: ${avg('rating_pres_content')}`,`Teaching Methods: ${avg('rating_pres_methods')}`,``,`--- Comments ---`,...se.filter(e=>e.comments).map(e=>`- ${e.comments}`),``,`--- Raw Data ---`,`member_id,objectives,knowledge,practice,bias,effectiveness,content,methods,comments`,...se.map(e=>`${e.member_id},${e.rating_objectives||''},${e.rating_knowledge||''},${e.rating_practice||''},${e.rating_bias||''},${e.rating_pres_effectiveness||''},${e.rating_pres_content||''},${e.rating_pres_methods||''},"${(e.comments||'').replace(/"/g,'""')}"`)];
+        const blob=new Blob([lines.join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`eval_${s.title.replace(/[^a-zA-Z0-9]/g,'_').slice(0,30)}_${s.session_date}.csv`;a.click();
+      };
+      return<><h2 style={{fontFamily:fn,fontSize:20,fontWeight:700,color:C.navy,marginBottom:16}}>Session Evaluation Summaries</h2>
+      {sessionsWithEvals.length===0?<div style={ac}><p style={{fontFamily:fn,color:C.tL}}>No evaluation data yet. Evaluations appear after members submit them.</p></div>:
+      <div style={{display:"grid",gap:16}}>{sessionsWithEvals.map(s=>{const se=evals.data.filter(e=>e.session_id===s.id);const avg=(field)=>{const vals=se.map(e=>e[field]).filter(v=>v!=null&&v>0);return vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):'--'};return<div key={s.id} className="cd" style={{padding:24}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12,marginBottom:16}}>
+          <div><h3 style={{fontFamily:fn,fontWeight:700,fontSize:17,color:C.navy,margin:0}}>{s.title}</h3><div style={{fontFamily:fn,fontSize:13,color:C.tL,marginTop:4}}>{fmtD(s.session_date)} - {s.presenter} - {se.length} response{se.length!==1?'s':''}</div></div>
+          <button style={ab(true)} onClick={()=>downloadSessionEval(s)}>Download CSV</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:12}}>
+          {[['Objectives',avg('rating_objectives')],['Knowledge',avg('rating_knowledge')],['Practice',avg('rating_practice')],['Bias-Free',avg('rating_bias')],['Presenter',avg('rating_pres_effectiveness')],['Content',avg('rating_pres_content')],['Methods',avg('rating_pres_methods')]].map(([l,v])=><div key={l} style={{background:C.cream,borderRadius:8,padding:12,textAlign:"center"}}><div style={{fontFamily:fn,fontWeight:700,fontSize:22,color:C.navy}}>{v}</div><div style={{fontFamily:fn,fontSize:11,color:C.tL}}>/ 5 {l}</div></div>)}
+        </div>
+        {se.some(e=>e.comments)&&<div style={{marginTop:16,paddingTop:12,borderTop:`1px solid ${C.brd}`}}><div style={{fontFamily:fn,fontSize:13,fontWeight:600,color:C.navy,marginBottom:8}}>Comments:</div>{se.filter(e=>e.comments).map((e,i)=><div key={i} style={{fontFamily:fn,fontSize:13,color:C.tM,padding:"6px 0 6px 16px",borderLeft:`3px solid ${C.brd}`,marginBottom:6,fontStyle:"italic"}}>{e.comments}</div>)}</div>}
+      </div>})}</div>}</>})()}
+
+    {/* CME LOG */}
+    {tab==="cmelog"&&(()=>{
+      const activeMembers=members.data.filter(m=>m.status==='full'||m.status==='trainee');
+      const downloadMemberCME=(m)=>{
+        const recs=cmeRecs.data.filter(r=>r.member_id===m.id&&r.attended);
+        const lines=[`CME Credit Log`,`Member: ${m.name}`,`Email: ${m.email||'N/A'}`,`Specialty: ${m.specialty||'N/A'}`,``,`Session,Date,CME Hours,Completed`,...recs.map(r=>{const s=sessions.data.find(x=>x.id===r.session_id);return`"${s?.title||'Unknown'}",${s?.session_date||''},${s?.cme_hours||1.25},${r.survey_completed_at?new Date(r.survey_completed_at).toLocaleDateString():''}`}),``,`Total Hours: ${recs.reduce((a,r)=>{const s=sessions.data.find(x=>x.id===r.session_id);return a+(s?.cme_hours||1.25)},0).toFixed(2)}`];
+        const blob=new Blob([lines.join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`cme_${m.name.replace(/[^a-zA-Z0-9]/g,'_')}.csv`;a.click();
+      };
+      return<><h2 style={{fontFamily:fn,fontSize:20,fontWeight:700,color:C.navy,marginBottom:16}}>Member CME Credit Log</h2><p style={{fontFamily:fn,fontSize:14,color:C.tM,marginBottom:16}}>Click Download to get a member's complete CME record.</p>
+      <div style={ac}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:fn,fontSize:14}}><thead><tr style={{borderBottom:"2px solid #ddd"}}>{["Member","Specialty","Sessions","Total Hours","Actions"].map(h=><th key={h} style={{textAlign:"left",padding:"8px",fontWeight:600}}>{h}</th>)}</tr></thead><tbody>{activeMembers.map(m=>{const recs=cmeRecs.data.filter(r=>r.member_id===m.id&&r.attended);const hrs=recs.reduce((a,r)=>{const s=sessions.data.find(x=>x.id===r.session_id);return a+(s?.cme_hours||1.25)},0);return<tr key={m.id} style={{borderBottom:"1px solid #eee"}}><td style={{padding:8,fontWeight:600,color:C.navy}}>{m.name}</td><td style={{padding:8}}>{m.specialty}</td><td style={{padding:8}}>{recs.length}</td><td style={{padding:8,fontWeight:600}}>{hrs.toFixed(2)} hrs</td><td style={{padding:8}}>{recs.length>0?<button style={ab(true)} onClick={()=>downloadMemberCME(m)}>Download CSV</button>:<span style={{color:C.tL,fontSize:13}}>No records</span>}</td></tr>})}</tbody></table></div></>})()}
 
     {/* EXPORT */}
     {tab==="export"&&<div style={ac}><h2 style={{fontFamily:fn,fontSize:20,fontWeight:700,color:C.navy,marginBottom:16}}>Export Data</h2><p style={{fontFamily:fn,fontSize:14,color:C.tM,marginBottom:16}}>Download each table as CSV:</p><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{["members","sessions","publications","tools","partners","leadership","evaluations","cme_records"].map(t=><button key={t} style={ab(false)} onClick={()=>{db.exportCsv(t);flash(`${t}.csv downloading...`)}}>{t}.csv</button>)}</div></div>}
