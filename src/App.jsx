@@ -33,7 +33,11 @@ export default function CHeSS(){
   const[page,setPage]=useState("home");const[mm,setMm]=useState(false);const[sc,setSc]=useState(false);const auth=useAuth();const li=!!auth.user;const ia=auth.isAdmin;
   useEffect(()=>{const h=()=>setSc(window.scrollY>20);window.addEventListener("scroll",h);return()=>window.removeEventListener("scroll",h)},[]);
   const nav=p=>{setPage(p);setMm(false);window.scrollTo(0,0)};
-  useEffect(()=>{if(window.location.hash.includes('type=recovery'))setPage('resetpw')},[]);
+  useEffect(()=>{
+    const h=window.location.hash||'';const s=window.location.search||'';
+    if(h.includes('type=recovery')||s.includes('type=recovery')||h.includes('type%3Drecovery'))setPage('resetpw');
+  },[]);
+  useEffect(()=>{if(isDemoMode)return;const{data:{subscription}}=supabase.auth.onAuthStateChange((event)=>{if(event==='PASSWORD_RECOVERY')setPage('resetpw')});return()=>subscription.unsubscribe()},[]);
   const NAV=[{l:"About Us",p:"about"},{l:"Leadership",p:"leadership"},{l:"Schedule",p:"schedule"},{l:"Academic Work",p:"academic"},{l:"Education",p:"education"},{l:"Tools",p:"tools"},{l:"Partners",p:"partners"},...(li?[{l:"🏥 Member Dashboard",p:"dashboard"}]:[]),...(ia?[{l:"⚙ Admin",p:"admin"}]:[]),...(!li?[{l:"Join CHeSS",p:"register"}]:[]),...(li?[{l:"Log Out",p:"logout"}]:[])];
   return<div style={{fontFamily:sf,color:C.tD,background:C.cream,minHeight:"100vh"}}>
     <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@300;400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
