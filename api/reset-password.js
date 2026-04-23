@@ -60,11 +60,12 @@ export default async function handler(req, res) {
   </div>
 </div></body></html>`
 
-  await fetch('https://api.resend.com/emails', {
+  // Fire-and-forget: send email in background, respond immediately
+  fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ from: fromEmail, to: email, subject: 'CHeSS — Reset Your Password', html }),
-  })
+  }).catch(() => {})
 
   return res.status(200).json({ message: 'If an account exists, a reset email has been sent.' })
 }
