@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const { data: linkData } = await supabase.auth.admin.generateLink({
       type: 'recovery',
       email,
-      options: { redirectTo: siteUrl }
+      options: { redirectTo: siteUrl + '?resetpw=true' }
     })
     if (linkData?.properties?.action_link) {
       resetLink = linkData.properties.action_link
