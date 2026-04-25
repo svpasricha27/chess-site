@@ -4,42 +4,34 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' })
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL
+  const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   const resendKey = process.env.RESEND_API_KEY
   const fromEmail = process.env.REMINDER_FROM_EMAIL || 'CHeSS Leadership <onboarding@resend.dev>'
   const siteUrl = 'https://chess-hypertension.org'
 
-  if (!supabaseUrl || !serviceRoleKey) return res.status(500).json({ error: 'Server not configured' })
-  if (!resendKey) return res.status(500).json({ error: 'Email not configured' })
+  if (!supabaseUrl) return res.status(500).json({ error: 'Not configured' })
 
   const { email } = req.body
   if (!email) return res.status(400).json({ error: 'Email required' })
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false }
-  })
+  // Strategy 1: Try admin API to generate link + send branded email via Resend
+  if (serviceRoleKey && resendKey) {
+    try {
+      const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      })
 
-  // Generate recovery link (does NOT send Supabase email)
-  let resetLink = siteUrl
-  try {
-    const { data: linkData, error } = await supabase.auth.admin.generateLink({
-      type: 'recovery',
-      email,
-      options: { redirectTo: siteUrl }
-    })
-    if (error) {
-      // User might not exist
-      return res.status(200).json({ message: 'If an account exists, a reset email has been sent.' })
-    }
-    if (linkData?.properties?.action_link) {
-      resetLink = linkData.properties.action_link
-    }
-  } catch (e) {
-    return res.status(200).json({ message: 'If an account exists, a reset email has been sent.' })
-  }
+      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+        type: 'recovery',
+        email,
+        options: { redirectTo: siteUrl }
+      })
 
-  // Send branded reset email via Resend
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+      if (!linkError && linkData?.properties?.action_link) {
+        const resetLink = linkData.properties.action_link
+
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#F8F6F1;font-family:'Helvetica Neue',Arial,sans-serif">
 <div style="max-width:600px;margin:0 auto;padding:32px 16px">
   <div style="background:#0B1D3A;border-radius:12px 12px 0 0;padding:32px 28px;text-align:center">
@@ -60,12 +52,31 @@ export default async function handler(req, res) {
   </div>
 </div></body></html>`
 
-  // Fire-and-forget: send email in background, respond immediately
-  fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: fromEmail, to: email, subject: 'CHeSS — Reset Your Password', html }),
-  }).catch(() => {})
+        // Send branded email
+        const emailResult = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: fromEmail, to: email, subject: 'CHeSS — Reset Your Password', html }),
+        })
+
+        if (emailResult.ok) {
+          return res.status(200).json({ message: 'Reset email sent.', method: 'branded' })
+        }
+      }
+    } catch (e) {
+      // Admin API failed - fall through to Strategy 2
+      console.log('Admin API failed:', e.message)
+    }
+  }
+
+  // Strategy 2: Fall back to Supabase's built-in reset (sends Supabase-styled email)
+  try {
+    const anonClient = createClient(supabaseUrl, supabaseKey)
+    await anonClient.auth.resetPasswordForEmail(email, { redirectTo: siteUrl })
+    return res.status(200).json({ message: 'Reset email sent.', method: 'supabase' })
+  } catch (e) {
+    console.log('Supabase reset failed:', e.message)
+  }
 
   return res.status(200).json({ message: 'If an account exists, a reset email has been sent.' })
 }
