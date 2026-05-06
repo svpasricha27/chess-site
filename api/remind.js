@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   const sd = new Date(`${session.session_date}T${String(h).padStart(2,'0')}:${String(m || '00').padStart(2,'0')}:00`)
   const fDate = sd.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
   const fTime = sd.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-  const te = session.session_type === 'Didactic' ? '📚' : session.session_type === 'Case' ? '🏥' : '⚖️'
+  
   const signer = admin_name ? `${admin_name} on behalf of the CHeSS Leadership Team` : 'The CHeSS Leadership Team'
 
   const zoomBlock = session.zoom_link
@@ -42,12 +42,12 @@ export default async function handler(req, res) {
   </div>
   <div style="background:#fff;padding:32px 28px;border:1px solid #E0DCD5;border-top:none">
     <div style="font-size:14px;color:#B91C3C;font-weight:600;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px">Session Reminder</div>
-    <h1 style="font-size:24px;color:#0B1D3A;margin:0 0 16px;line-height:1.3">${te} ${session.title}</h1>
+    <h1 style="font-size:24px;color:#0B1D3A;margin:0 0 16px;line-height:1.3">${session.title}</h1>
     <div style="background:#F8F6F1;border-radius:8px;padding:20px;margin-bottom:24px">
       <table style="width:100%;border-collapse:collapse">
         <tr><td style="padding:6px 0;color:#7A7A7A;font-size:14px;width:100px">Date</td><td style="padding:6px 0;color:#1A1A1A;font-size:14px;font-weight:600">${fDate}</td></tr>
         <tr><td style="padding:6px 0;color:#7A7A7A;font-size:14px">Time</td><td style="padding:6px 0;color:#1A1A1A;font-size:14px;font-weight:600">${fTime} ET</td></tr>
-        <tr><td style="padding:6px 0;color:#7A7A7A;font-size:14px">Format</td><td style="padding:6px 0;color:#1A1A1A;font-size:14px;font-weight:600">${session.session_type}</td></tr>
+
         <tr><td style="padding:6px 0;color:#7A7A7A;font-size:14px">Speaker(s)</td><td style="padding:6px 0;color:#1A1A1A;font-size:14px;font-weight:600">${session.speakers || 'TBA'}</td></tr>
         <tr><td style="padding:6px 0;color:#7A7A7A;font-size:14px">CME</td><td style="padding:6px 0;color:#1A1A1A;font-size:14px;font-weight:600">${session.cme_hours || 1.25} hours (Section 1)</td></tr>
       </table>
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
       const r = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: fromEmail, reply_to: admin_email || undefined, to: mem.email, subject: `CHeSS ${session.session_type} Reminder: ${session.title}`, html }),
+        body: JSON.stringify({ from: fromEmail, reply_to: admin_email || undefined, to: mem.email, subject: `CHeSS Session Reminder: ${session.title}`, html }),
       })
       if (r.ok) totalSent++
       else errors.push({ email: mem.email, error: await r.text() })
