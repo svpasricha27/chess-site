@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     <div style="background:#F8F6F1;border-radius:8px;padding:20px;margin-bottom:24px">
       <div style="font-size:18px;font-weight:700;color:#0B1D3A;margin-bottom:8px">${session.title}</div>
       <div style="font-size:14px;color:#4A4A4A">${fDate}</div>
-      <div style="font-size:14px;color:#4A4A4A">Presented by ${session.presenter || 'TBA'} &middot; ${session.cme_hours || 1.25} CME hours</div>
+      <div style="font-size:14px;color:#4A4A4A">Speaker(s): ${session.speakers || 'TBA'} &middot; ${session.cme_hours || 1.25} CME hours</div>
     </div>
     <p style="font-size:14px;color:#4A4A4A;line-height:1.7;margin-bottom:20px">Please log in to the Member Dashboard to complete your session evaluation and <strong>claim your CME credit</strong>. Evaluations are available for <strong>7 days</strong> after the session.</p>
     <div style="text-align:center;margin-bottom:24px">
