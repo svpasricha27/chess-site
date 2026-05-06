@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         <tr><td style="padding:6px 0;color:#7A7A7A;font-size:14px;width:100px">Date</td><td style="padding:6px 0;color:#1A1A1A;font-size:14px;font-weight:600">${fDate}</td></tr>
         <tr><td style="padding:6px 0;color:#7A7A7A;font-size:14px">Time</td><td style="padding:6px 0;color:#1A1A1A;font-size:14px;font-weight:600">${fTime} ET</td></tr>
         <tr><td style="padding:6px 0;color:#7A7A7A;font-size:14px">Format</td><td style="padding:6px 0;color:#1A1A1A;font-size:14px;font-weight:600">${session.session_type}</td></tr>
-        <tr><td style="padding:6px 0;color:#7A7A7A;font-size:14px">Presenter</td><td style="padding:6px 0;color:#1A1A1A;font-size:14px;font-weight:600">${session.presenter || 'TBA'}</td></tr>
+        <tr><td style="padding:6px 0;color:#7A7A7A;font-size:14px">Speaker(s)</td><td style="padding:6px 0;color:#1A1A1A;font-size:14px;font-weight:600">${session.speakers || 'TBA'}</td></tr>
         <tr><td style="padding:6px 0;color:#7A7A7A;font-size:14px">CME</td><td style="padding:6px 0;color:#1A1A1A;font-size:14px;font-weight:600">${session.cme_hours || 1.25} hours (Section 1)</td></tr>
       </table>
     </div>
