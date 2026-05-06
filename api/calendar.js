@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     const end = toICSEndDate(s.session_date, s.session_time, s.cme_hours)
     const uid = `${s.id || s.session_date}@chess-hypertension.org`
 
-    let description = `Presenter: ${s.presenter || 'TBA'}`
+    let description = `Speaker(s): ${s.speakers || 'TBA'}`
     description += `\\nType: ${s.session_type}`
     description += `\\nCME: ${s.cme_hours || 1.25} hours`
     if (s.zoom_link) description += `\\nZoom: ${s.zoom_link}`
