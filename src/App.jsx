@@ -72,7 +72,25 @@ function LeadershipPage(){
   const board=leaders.filter(l=>l.board_type==='board');
   const advisors=leaders.filter(l=>l.board_type==='advisor');
   const[exp,setExp]=useState(null);const[expA,setExpA]=useState(null);
-  const Card=({l,i,expanded,setExpanded})=>{const m=l.members||{};const affs=(l.affiliations||'').split('|').map(a=>a.trim()).filter(Boolean);return<div className="cd" style={{padding:0,overflow:"hidden",cursor:"pointer"}} onClick={()=>setExpanded(expanded===i?null:i)}><div style={{display:"flex",gap:20,padding:"24px 24px 20px"}}><Ini name={m.name} size={64}/><div><div style={{fontFamily:fn,fontWeight:700,fontSize:18,color:C.navy}}>{m.name||'Member'}</div>{l.role_title&&<div style={{fontFamily:fn,fontSize:13,color:C.crim,fontWeight:600,marginTop:2}}>{l.role_title}</div>}<div style={{fontFamily:fn,fontSize:13,color:C.tL,marginTop:4}}>{m.specialty} · {m.degrees}</div>{affs.length>0&&<div style={{marginTop:6}}>{affs.map((a,ai)=><div key={ai} style={{fontFamily:fn,fontSize:12,color:C.tM,lineHeight:1.5}}>• {a}</div>)}</div>}</div></div>{expanded===i&&<div style={{padding:"0 24px 24px",fontFamily:fn,fontSize:14,color:C.tM,lineHeight:1.7,borderTop:`1px solid ${C.brd}`,paddingTop:16}}>{m.bio||m.clinical_interests||'No bio available.'}</div>}</div>};
+  const Card=({l,i,expanded,setExpanded})=>{const m=l.members||{};const affs=(l.affiliations||'').split('|').map(a=>a.trim()).filter(Boolean);return<div className="cd" style={{padding:0,overflow:"hidden",cursor:"pointer"}} onClick={()=>setExpanded(expanded===i?null:i)}>
+    <div style={{padding:"28px 28px 24px"}}>
+      <div style={{display:"flex",gap:20}}>
+        <Ini name={m.name} size={64}/>
+        <div style={{flex:1}}>
+          <div style={{fontFamily:fn,fontWeight:700,fontSize:20,color:C.navy,lineHeight:1.2}}>{m.name||'Member'}</div>
+          {l.role_title&&<div style={{fontFamily:fn,fontSize:14,color:C.crim,fontWeight:600,marginTop:4,letterSpacing:0.3}}>{l.role_title}</div>}
+          <div style={{fontFamily:fn,fontSize:13,color:C.tL,marginTop:6}}>{[m.specialty,m.degrees,m.province].filter(Boolean).join(' · ')}</div>
+        </div>
+      </div>
+      {affs.length>0&&<div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.brd}`}}>
+        {affs.map((a,ai)=><div key={ai} style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:ai<affs.length-1?6:0}}>
+          <div style={{width:5,height:5,borderRadius:"50%",background:C.crim,flexShrink:0,marginTop:6}}/>
+          <span style={{fontFamily:fn,fontSize:13,color:C.tM,lineHeight:1.5}}>{a}</span>
+        </div>)}
+      </div>}
+    </div>
+    {expanded===i&&<div style={{padding:"0 28px 28px",fontFamily:fn,fontSize:14,color:C.tM,lineHeight:1.8,borderTop:`1px solid ${C.brd}`,paddingTop:20,background:C.cream}}>{m.bio||m.clinical_interests||'No bio available.'}</div>}
+  </div>};
   if(leaders.length===0)return<PW><Lbl>Leadership</Lbl><h1 className="st">Executive Board</h1><p className="ss">Loading...</p></PW>;
   return<PW><Lbl>Leadership</Lbl><h1 className="st">Executive Board</h1><p className="ss">Strategic direction, educational programming, and advocacy. Est. 2022.</p><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:24}}>{board.map((l,i)=><Card key={l.id} l={l} i={i} expanded={exp} setExpanded={setExp}/>)}</div>{advisors.length>0&&<><h2 style={{fontFamily:fn,fontWeight:700,fontSize:28,color:C.navy,marginTop:48,marginBottom:8}}>Advisors</h2><p className="ss">Senior advisors providing guidance and mentorship.</p><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))",gap:24}}>{advisors.map((l,i)=><Card key={l.id} l={l} i={i} expanded={expA} setExpanded={setExpA}/>)}</div></>}</PW>;
 }
