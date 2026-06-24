@@ -16,17 +16,36 @@ export default async function handler(req, res) {
     auth: { autoRefreshToken: false, persistSession: false }
   })
 
-  // Find the auth user by email
   try {
-    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers()
-    if (listError) return res.status(500).json({ error: 'Could not look up user' })
+    // Look up user_id from members table first
+    const { data: member } = await supabase.from('members').select('user_id').eq('email', email.toLowerCase().trim()).maybeSingle()
 
-    const user = users?.find(u => u.email === email)
-    if (!user) return res.status(404).json({ error: 'No account found' })
+    if (member?.user_id) {
+      // Update password directly by user ID
+      const { error } = await supabase.auth.admin.updateUserById(member.user_id, { password })
+      if (error) return res.status(500).json({ error: error.message })
+      return res.status(200).json({ message: 'Password updated successfully' })
+    }
 
-    // Update password via admin API (no session needed)
-    const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, { password })
-    if (updateError) return res.status(500).json({ error: updateError.message })
+    // Fallback: search auth users with pagination
+    let page = 1
+    let found = null
+    while (!found && page <= 10) {
+      const { data: { users } } = await supabase.auth.admin.listUsers({ page, perPage: 50 })
+      if (!users || users.length === 0) break
+      found = users.find(u => u.email === email.toLowerCase().trim())
+      page++
+    }
+
+    if (!found) return res.status(404).json({ error: 'No account found with this email address.' })
+
+    // Update password and link user_id to member
+    const { error } = await supabase.auth.admin.updateUserById(found.id, { password })
+    if (error) return res.status(500).json({ error: error.message })
+
+    if (member) {
+      await supabase.from('members').update({ user_id: found.id }).eq('email', email.toLowerCase().trim())
+    }
 
     return res.status(200).json({ message: 'Password updated successfully' })
   } catch (e) {
